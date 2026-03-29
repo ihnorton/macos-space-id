@@ -1,0 +1,7 @@
+.build/
+SpaceID.app/
+*.o
+*.d
+
+# Claude local settings
+.claude/settings.local.json
