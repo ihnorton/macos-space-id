@@ -20,6 +20,7 @@ final class StatusBarController {
             button.title = "•"
             button.action = #selector(handleClick)
             button.target = self
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
 
         // Update title whenever the current space or its name changes.
@@ -34,11 +35,26 @@ final class StatusBarController {
     }
 
     @objc private func handleClick() {
-        if let p = popover, p.isShown {
-            p.performClose(nil)
+        guard let event = NSApp.currentEvent else { return }
+        if event.type == .rightMouseUp {
+            showQuitMenu()
         } else {
-            showPopover()
+            if let p = popover, p.isShown {
+                p.performClose(nil)
+            } else {
+                showPopover()
+            }
         }
+    }
+
+    private func showQuitMenu() {
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Quit SpaceID", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        // Temporarily assign the menu so the status item can pop it, then clear it
+        // so future left-clicks still go through handleClick.
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
     }
 
     private func showPopover() {

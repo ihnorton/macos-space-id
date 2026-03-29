@@ -10,9 +10,9 @@ final class SpaceMonitor: ObservableObject {
 
     func start() {
         refresh()
-        observer = NotificationCenter.default.addObserver(
+        observer = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.activeSpaceDidChangeNotification,
-            object: NSWorkspace.shared,
+            object: nil,
             queue: .main
         ) { [weak self] _ in
             self?.refresh()
@@ -42,7 +42,7 @@ final class SpaceMonitor: ObservableObject {
 
     deinit {
         if let observer {
-            NotificationCenter.default.removeObserver(observer)
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
     }
 }
