@@ -8,6 +8,30 @@ final class SpaceMonitor: ObservableObject {
 
     private var observer: Any?
 
+    /// One-time migration: rewrites old index-based storage keys ("displayUUID:N") to
+    /// UUID-based keys ("displayUUID:spaceUUID") using the current CGS space layout.
+    /// Safe to call multiple times; does nothing once all keys are already UUID-based.
+    func migrateIndexKeys(into store: SpaceStore) {
+        let conn = CGSMainConnectionID()
+        guard let displays = CGSCopyManagedDisplaySpaces(conn) as? [[String: Any]] else { return }
+
+        for display in displays {
+            guard
+                let spaces = display["Spaces"] as? [[String: Any]],
+                let displayUUID = display["Display Identifier"] as? String
+            else { continue }
+
+            for (index, space) in spaces.enumerated() {
+                guard let spaceUUID = space["uuid"] as? String else { continue }
+                let oldKey = "\(displayUUID):\(index)"
+                let newKey = "\(displayUUID):\(spaceUUID)"
+                if store.nameForStorageKey(oldKey) != nil, store.nameForStorageKey(newKey) == nil {
+                    store.migrateKey(from: oldKey, to: newKey)
+                }
+            }
+        }
+    }
+
     func start() {
         refresh()
         observer = NSWorkspace.shared.notificationCenter.addObserver(
@@ -35,7 +59,20 @@ final class SpaceMonitor: ObservableObject {
             else { continue }
 
             let index = spaces.firstIndex { ($0["id64"] as? Int) == currentID } ?? 0
-            currentSpaceKey = SpaceKey(displayUUID: displayUUID, spaceIndex: index)
+
+            // Prefer the uuid from the Spaces array entry; fall back to the
+            // "Current Space" dict (same data, different nesting in some OS versions).
+            let spaceUUID: String
+            if index < spaces.count, let uuid = spaces[index]["uuid"] as? String {
+                spaceUUID = uuid
+            } else if let uuid = currentSpace["uuid"] as? String {
+                spaceUUID = uuid
+            } else {
+                // No UUID available – fall back to index so the app still works.
+                spaceUUID = "idx:\(index)"
+            }
+
+            currentSpaceKey = SpaceKey(displayUUID: displayUUID, spaceUUID: spaceUUID, spaceIndex: index)
             return
         }
     }

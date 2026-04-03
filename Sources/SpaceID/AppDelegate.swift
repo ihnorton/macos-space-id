@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let store = SpaceStore()
         let monitor = SpaceMonitor()
+        monitor.migrateIndexKeys(into: store)
         statusBarController = StatusBarController(monitor: monitor, store: store)
         monitor.start()
     }

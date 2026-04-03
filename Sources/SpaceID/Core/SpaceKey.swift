@@ -1,8 +1,10 @@
 /// Stable identity for a Space across sessions.
-/// Keyed by display UUID × position, since Space UUIDs are regenerated each login.
+/// Keyed by display UUID × per-space UUID. The per-space "uuid" field in
+/// CGSCopyManagedDisplaySpaces is stable across logins (unlike the session-local "id64").
 struct SpaceKey: Codable, Hashable {
     let displayUUID: String
-    let spaceIndex: Int  // 0-based position in CGSCopyManagedDisplaySpaces "Spaces" array
+    let spaceUUID: String  // per-space UUID from CGSCopyManagedDisplaySpaces "Spaces" array
+    let spaceIndex: Int    // 0-based position, used only for the default label "Space N"
 
-    var storageKey: String { "\(displayUUID):\(spaceIndex)" }
+    var storageKey: String { "\(displayUUID):\(spaceUUID)" }
 }
